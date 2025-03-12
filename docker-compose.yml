@@ -23,6 +23,11 @@ services:
         - action: sync
           path: ./public/static
           target: /app/static
+        # The service needs to access the files in this directory to be able to
+        # serve them from within the container. They need to be synced.
+        - action: sync
+          path: ./client/dist
+          target: /app/static
 
 networks:
   app-network:
