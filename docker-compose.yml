@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: ./api # Path to your Express app
+    networks:
+      - app-network
+
+  public:
+    build:
+      context: ./public # Path to your Python app
+    env_file: ./public/.env.docker
+    ports:
+      - "7000:7000"
+    networks:
+      - app-network
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./public/app.js
+          target: /app/app.js
+        - action: rebuild
+          path: ./public/package.json
+       - action: sync
+          path: ./public/static
+          target: /app/static
+
+networks:
+  app-network:
+    driver: bridge
