@@ -20,7 +20,7 @@ services:
           target: /app/app.js
         - action: rebuild
           path: ./public/package.json
-       - action: sync
+        - action: sync
           path: ./public/static
           target: /app/static
 
