@@ -56,6 +56,8 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Invalid JSON format', details: validate.errors });
   }
 
+  // ADD SOCKET NOTIFICATION HERE USING EVENT EMITTER ARCHITECTURE
+
   collection.insert(req.body);
   res.status(201).json({ message: 'Data saved successfully' });
 });
