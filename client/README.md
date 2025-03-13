@@ -9,4 +9,3 @@ Run the build watcher:
 ```
 node ./esbuilder.js
 ```
-

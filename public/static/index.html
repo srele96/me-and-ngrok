@@ -1,17 +1,17 @@
-<!DOCTYPE>
+<!DOCTYPE >
 <html>
   <head>
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <title>Something</title>
   </head>
   <body>
     <h1>Zdravo Andrej!</h1>
     <p>Zdravo Andrej!</p>
     <div id="form-container">
-      <div style="height: 65px;"></div>
+      <div style="height: 65px"></div>
     </div>
     <div id="root"></div>
     <button id="get-user-data">Get user data</button>
@@ -21,147 +21,146 @@
   </body>
 </html>
 <script>
-  (function() {
+  (function () {
     // Function to fetch and display user data
     function fetchUserData() {
-        fetch('/api')
-            .then(response => response.json())
-            .then(users => {
-                const listContainer = document.getElementById('list-user-data');
-                if (!listContainer) {
-                    console.error("Element with id 'list-user-data' not found.");
-                    return;
-                }
+      fetch("/api")
+        .then((response) => response.json())
+        .then((users) => {
+          const listContainer = document.getElementById("list-user-data");
+          if (!listContainer) {
+            console.error("Element with id 'list-user-data' not found.");
+            return;
+          }
 
-                // Clear previous list
-                listContainer.innerHTML = '';
+          // Clear previous list
+          listContainer.innerHTML = "";
 
-                // Check if users exist
-                if (users.length === 0) {
-                    listContainer.innerHTML = '<p>No users found.</p>';
-                    return;
-                }
+          // Check if users exist
+          if (users.length === 0) {
+            listContainer.innerHTML = "<p>No users found.</p>";
+            return;
+          }
 
-                // Create a list element
-                const ul = document.createElement('ul');
+          // Create a list element
+          const ul = document.createElement("ul");
 
-                // Iterate over users and create list items
-                users.forEach(user => {
-                    const li = document.createElement('li');
-                    li.textContent = `Name: ${user.name}, Age: ${user.age}`;
-                    ul.appendChild(li);
-                });
+          // Iterate over users and create list items
+          users.forEach((user) => {
+            const li = document.createElement("li");
+            li.textContent = `Name: ${user.name}, Age: ${user.age}`;
+            ul.appendChild(li);
+          });
 
-                // Append list to container
-                listContainer.appendChild(ul);
-            })
-            .catch(error => console.error('Error fetching user data:', error));
+          // Append list to container
+          listContainer.appendChild(ul);
+        })
+        .catch((error) => console.error("Error fetching user data:", error));
     }
 
-    const button = document.getElementById('get-user-data');
-    button.addEventListener('click', fetchUserData);
-
+    const button = document.getElementById("get-user-data");
+    button.addEventListener("click", fetchUserData);
 
     // Add event listener to button
-    document.addEventListener('DOMContentLoaded', fetchUserData);
+    document.addEventListener("DOMContentLoaded", fetchUserData);
   })();
 
-  (function() {
+  (function () {
     function generateForm() {
-        fetch('/api/schema')
-            .then(response => response.json())
-            .then(schema => {
-                const formContainer = document.getElementById('form-container');
-                if (!formContainer) {
-                    console.error("Element with id 'form-container' not found.");
-                    return;
-                }
+      fetch("/api/schema")
+        .then((response) => response.json())
+        .then((schema) => {
+          const formContainer = document.getElementById("form-container");
+          if (!formContainer) {
+            console.error("Element with id 'form-container' not found.");
+            return;
+          }
 
-                // Create form element
-                const form = document.createElement('form');
-                form.id = 'dynamic-form';
+          // Create form element
+          const form = document.createElement("form");
+          form.id = "dynamic-form";
 
-                // Iterate over schema properties and create input fields
-                for (const field in schema.properties) {
-                    const fieldConfig = schema.properties[field];
+          // Iterate over schema properties and create input fields
+          for (const field in schema.properties) {
+            const fieldConfig = schema.properties[field];
 
-                    // Create label
-                    const label = document.createElement('label');
-                    label.textContent = `${field}: `;
-                    label.setAttribute('for', field);
+            // Create label
+            const label = document.createElement("label");
+            label.textContent = `${field}: `;
+            label.setAttribute("for", field);
 
-                    // Create input field
-                    const input = document.createElement('input');
-                    input.id = field;
-                    input.name = field;
+            // Create input field
+            const input = document.createElement("input");
+            input.id = field;
+            input.name = field;
 
-                    // Set input type based on schema
-                    if (fieldConfig.type === 'string') {
-                        input.type = 'text';
-                    } else if (fieldConfig.type === 'integer') {
-                        input.type = 'number';
-                        input.min = fieldConfig.minimum || 0; // Apply minimum constraint if exists
-                    }
+            // Set input type based on schema
+            if (fieldConfig.type === "string") {
+              input.type = "text";
+            } else if (fieldConfig.type === "integer") {
+              input.type = "number";
+              input.min = fieldConfig.minimum || 0; // Apply minimum constraint if exists
+            }
 
-                    // Add required attribute if field is required
-                    if (schema.required.includes(field)) {
-                        input.required = true;
-                    }
+            // Add required attribute if field is required
+            if (schema.required.includes(field)) {
+              input.required = true;
+            }
 
-                    // Append label and input to form
-                    form.appendChild(label);
-                    form.appendChild(input);
-                    form.appendChild(document.createElement('br'));
-                }
+            // Append label and input to form
+            form.appendChild(label);
+            form.appendChild(input);
+            form.appendChild(document.createElement("br"));
+          }
 
-                // Create submit button
-                const submitButton = document.createElement('button');
-                submitButton.type = 'submit';
-                submitButton.textContent = 'Submit';
+          // Create submit button
+          const submitButton = document.createElement("button");
+          submitButton.type = "submit";
+          submitButton.textContent = "Submit";
 
-                // Append button to form
-                form.appendChild(submitButton);
+          // Append button to form
+          form.appendChild(submitButton);
 
-                // Prevent form submission from refreshing the page
-                form.addEventListener('submit', function (event) {
-                    event.preventDefault(); // Prevent page refresh
+          // Prevent form submission from refreshing the page
+          form.addEventListener("submit", function (event) {
+            event.preventDefault(); // Prevent page refresh
 
-                    // Collect form data
-                    const formData = {};
-                    new FormData(form).forEach((value, key) => {
-                        formData[key] = key === 'age' ? parseInt(value) : value;
-                    });
+            // Collect form data
+            const formData = {};
+            new FormData(form).forEach((value, key) => {
+              formData[key] = key === "age" ? parseInt(value) : value;
+            });
 
-                    // Send data via fetch
-                    fetch('/api', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(formData)
-                    })
-                    .then(response => response.json())
-                    .then(data => console.log('Success:', data))
-                    .catch(error => console.error('Error:', error));
-                });
-
-                formContainer.innerHTML = '';
-                // Append form to container
-                formContainer.appendChild(form);
+            // Send data via fetch
+            fetch("/api", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(formData),
             })
-            .catch(error => console.error('Error fetching schema:', error));
+              .then((response) => response.json())
+              .then((data) => console.log("Success:", data))
+              .catch((error) => console.error("Error:", error));
+          });
+
+          formContainer.innerHTML = "";
+          // Append form to container
+          formContainer.appendChild(form);
+        })
+        .catch((error) => console.error("Error fetching schema:", error));
     }
 
     // Call function to generate form
     generateForm();
   })();
 
-  (function() {
-    var getHacked = document.getElementById('get-hacked');
-    getHacked.addEventListener('click', function() {
-      var body = document.getElementsByTagName('body')[0];
-      var p = document.createElement('p');
-      p.innerHTML = 'zdravo';
+  (function () {
+    var getHacked = document.getElementById("get-hacked");
+    getHacked.addEventListener("click", function () {
+      var body = document.getElementsByTagName("body")[0];
+      var p = document.createElement("p");
+      p.innerHTML = "zdravo";
       body.appendChild(p);
     });
   })();

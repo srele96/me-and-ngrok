@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom/client';
-import { io } from 'socket.io-client';
+import React, { useState, useEffect } from "react";
+import ReactDOM from "react-dom/client";
+import { io } from "socket.io-client";
 
-const socket = io('http://localhost:7000', {
+const socket = io("http://localhost:7000", {
   // THE PATH MUST BE EXACTLY /api/socket-io/
   // THIS DOES NOT WORK /api/socket-io
-  path: '/api/socket-io/',
+  path: "/api/socket-io/",
 });
 
 const App = () => {
@@ -21,27 +21,27 @@ const App = () => {
     }
 
     function onFooEvent(value) {
-      setFooEvents(previous => [...previous, value]);
+      setFooEvents((previous) => [...previous, value]);
     }
 
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.on('foo', onFooEvent);
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("foo", onFooEvent);
 
     return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off('foo', onFooEvent);
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("foo", onFooEvent);
     };
   }, []);
 
   return (
     <div>
       <h1>SocketIO demo</h1>
-      <p>{isConnected ? 'Connected' : 'Disconnected'}</p>
+      <p>{isConnected ? "Connected" : "Disconnected"}</p>
     </div>
-  )
+  );
 };
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<App />);
