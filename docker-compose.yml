@@ -1,7 +1,7 @@
 services:
   api:
     build:
-      context: ./api # Path to your Express app
+      context: ./api
     networks:
       - app-network
     develop:
@@ -12,7 +12,7 @@ services:
 
   public:
     build:
-      context: ./public # Path to your Python app
+      context: ./public
     env_file: ./public/.env.docker
     ports:
       - "7000:7000"
