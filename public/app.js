@@ -35,32 +35,9 @@ if (!HOST) {
 const express = require("express");
 const path = require("path");
 const { createProxyMiddleware } = require("http-proxy-middleware");
-const http = require("http");
-const socketIo = require("socket.io");
 
 const app = express();
-const server = http.createServer(app);
 
-// Attach Socket.IO to the HTTP server
-const io = socketIo(server);
-
-// Setup Socket.IO events
-io.on("connection", (socket) => {
-  console.log("A user connected");
-
-  // Send a message to the client
-  socket.emit("welcome", "Hello from server!");
-
-  // Listen for messages from the client
-  socket.on("message", (data) => {
-    console.log("Received message:", data);
-  });
-
-  // Disconnect event
-  socket.on("disconnect", () => {
-    console.log("A user disconnected");
-  });
-});
 
 app.use(express.static(path.join(__dirname, "static")));
 
@@ -83,6 +60,6 @@ app.use((req, res, next) => {
 });
 
 const PORT = 7000;
-server.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

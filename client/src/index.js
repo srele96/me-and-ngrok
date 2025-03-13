@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:7000');
+const socket = io('http://localhost:7000', {
+  // THE PATH MUST BE EXACTLY /api/socket-io/
+  // THIS DOES NOT WORK /api/socket-io
+  path: '/api/socket-io/',
+});
 
 const App = () => {
   const [isConnected, setIsConnected] = useState(socket.connected);

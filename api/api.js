@@ -3,8 +3,30 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const Ajv = require('ajv');
 const Loki = require('lokijs');
+const http = require("http");
+const socketIo = require("socket.io");
 
 const app = express();
+const server = http.createServer(app);
+
+const io = socketIo(server, {
+  path: '/api/socket-io/'
+});
+
+io.on("connection", (socket) => {
+  console.log("A user connected");
+
+  socket.emit("welcome", "Hello from server!");
+
+  socket.on("message", (data) => {
+    console.log("Received message:", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("A user disconnected");
+  });
+});
+
 const port = 8000;
 
 const db = new Loki('memory.db', { autosave: true });
@@ -50,9 +72,10 @@ router.get('/schema', (req, res) => {
 app.use('/api', router);
 
 app.use((req, res, next) => {
+  console.log('request', req.path);
   res.status(404).json({ error: 'Not Found', message: `The route ${req.originalUrl} does not exist` });
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
