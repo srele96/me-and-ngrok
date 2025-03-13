@@ -39,6 +39,7 @@ const App = () => {
     <div>
       <h1>SocketIO demo</h1>
       <p>{isConnected ? "Connected" : "Disconnected"}</p>
+      <p>What is wrong now?</p>
     </div>
   );
 };
