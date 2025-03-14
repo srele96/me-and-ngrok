@@ -5,6 +5,7 @@ const Ajv = require("ajv");
 const Loki = require("lokijs");
 const http = require("http");
 const socketIo = require("socket.io");
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,8 +30,12 @@ io.on("connection", (socket) => {
 
 const port = 8000;
 
+// extend schema to contain map of
+// userID -> { createdAt: Date }
+// Later implement something to clean up > 7 days old objects
 const db = new Loki("memory.db", { autosave: true });
 const collection = db.addCollection("data");
+const users = db.addCollection('users');
 
 const ajv = new Ajv();
 
@@ -49,16 +54,31 @@ app.use(bodyParser.json());
 
 const router = express.Router();
 
+router.post('/id', (req, res) => {
+  const header = 'X-User-ID';
+  const id = crypto.randomBytes(32).toString('hex');
+  try {
+    users.insert({ id });
+    return res.status(200).json({ id });
+  } catch(error) {
+    return res.status(500).json({
+      error: 'Failed to generate identifier.',
+      message: 'Unable to create id.'
+    });
+  }
+});
+
 router.post("/", (req, res) => {
   const isValid = validate(req.body);
 
   if (!isValid) {
+    io.emit('error', { id: crypto.randomUUID(), value: 'Failed to create user.' });
     return res
       .status(400)
       .json({ error: "Invalid JSON format", details: validate.errors });
+  } else {
+    io.emit('success', { id: crypto.randomUUID(), value: 'Created user.' })
   }
-
-  // ADD SOCKET NOTIFICATION HERE USING EVENT EMITTER ARCHITECTURE
 
   collection.insert(req.body);
   res.status(201).json({ message: "Data saved successfully" });
