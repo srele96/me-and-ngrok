@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { io } from "socket.io-client";
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: "http://localhost:7000/api",
-});
 
 async function createIO() {
   try {
     const X_USER_ID = "X-User-Id";
-    const response = await api.post("/id");
-    const id = response.data.id;
+
+    const response = await fetch("http://localhost:7000/api/id", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status}.`);
+    }
+
+    const { id }= await response.json();
 
     sessionStorage.setItem(X_USER_ID, id);
 
