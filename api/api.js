@@ -14,8 +14,14 @@ const io = socketIo(server, {
   path: "/api/socket-io/",
 });
 
+io.use((socket, next) => {
+  console.log(socket.handshake.headers);
+  socket.userId = socket.handshake.headers['x-user-id'];
+  next();
+});
+
 io.on("connection", (socket) => {
-  console.log("A user connected");
+  console.log("A user " + socket.userId + ' connected.');
 
   socket.emit("welcome", "Hello from server!");
 
@@ -55,6 +61,7 @@ app.use(bodyParser.json());
 const router = express.Router();
 
 router.post('/id', (req, res) => {
+  console.log('received request /id');
   const header = 'X-User-ID';
   const id = crypto.randomBytes(32).toString('hex');
   try {

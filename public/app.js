@@ -52,6 +52,7 @@ app.use(
     // To send requests within internal network, we have to use the name of the service
     // https://docs.docker.com/compose/how-tos/networking/
     target: `http://${HOST}:8000/api`, // URL of the API service
+    ws: true
   })
 );
 

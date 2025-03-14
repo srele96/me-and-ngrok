@@ -6,7 +6,7 @@ async function createIO() {
   try {
     const X_USER_ID = "X-User-Id";
 
-    const response = await fetch("http://localhost:7000/api/id", {
+    const response = await fetch("/api/id/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -21,7 +21,7 @@ async function createIO() {
 
     sessionStorage.setItem(X_USER_ID, id);
 
-    const socket = io("http://localhost:7000", {
+    const socket = io("", {
       // THE PATH MUST BE EXACTLY /api/socket-io/
       // THIS DOES NOT WORK /api/socket-io
       path: "/api/socket-io/",
