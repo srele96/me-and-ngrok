@@ -91,7 +91,12 @@ const App = () => {
       setFooEvents((previous) => [...previous, value]);
     }
 
+    function onNotification(value) {
+      setNotifications(previous => [...previous, value]);
+    }
+
     if (socket) {
+      socket.on('notification', onNotification);
       socket.on("connect", onConnect);
       socket.on("disconnect", onDisconnect);
       socket.on("foo", onFooEvent);
@@ -99,6 +104,7 @@ const App = () => {
 
     return () => {
       if (socket) {
+        socket.off('notification', onNotification);
         socket.off("connect", onConnect);
         socket.off("disconnect", onDisconnect);
         socket.off("foo", onFooEvent);
@@ -107,7 +113,6 @@ const App = () => {
   }, [socket]);
 
   function createStatus() {
-    console.log({socket,error})
     if (!socket && !error) {
       return 'Creating socket...';
     } else {

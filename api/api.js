@@ -72,12 +72,12 @@ router.post("/", (req, res) => {
   const isValid = validate(req.body);
 
   if (!isValid) {
-    io.emit('error', { id: crypto.randomUUID(), value: 'Failed to create user.' });
+    io.emit('notification', { id: crypto.randomUUID(), value: 'Failed to create user.' });
     return res
       .status(400)
       .json({ error: "Invalid JSON format", details: validate.errors });
   } else {
-    io.emit('success', { id: crypto.randomUUID(), value: 'Created user.' })
+    io.emit('notification', { id: crypto.randomUUID(), value: 'Created user.' })
   }
 
   collection.insert(req.body);
