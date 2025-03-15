@@ -9,39 +9,43 @@ const TARGET_SERVER_URL = "http://localhost:3001/";
 
 app.use(express.static(path.join(__dirname, "public")));
 
+const wsProxy = createProxyMiddleware({
+  pathFilter: "/api/socket.io/",
+  target: TARGET_SERVER_URL,
+  changeOrigin: true,
+  // Without this... i suppose we have to handle upgrade manually...
+  // Try to handle upgrade manually...
+  // ws: true, // Enable WebSocket support
+  logger: console,
+  pathRewrite: {
+    "^/api/": "/",
+  },
+});
+
 app.use(
+  // Doesn't work with /socket.io/ here... It must be one of the reasons...
+  // Why upgrade fails... Because of the prefix api path...
   // "/socket.io",
   createProxyMiddleware({
-    pathFilter: "/api/socket.io/",
-    // pathRewrite: {
-    //   '^/'
-    // },
+    pathFilter: "/api/",
     target: TARGET_SERVER_URL,
     changeOrigin: true,
-    ws: true, // Enable WebSocket support
+    // Without this... i suppose we have to handle upgrade manually...
+    // Try to handle upgrade manually...
+    // ws: true, // Enable WebSocket support
     logger: console,
     pathRewrite: {
-      // "^/api/socket.io/": "/socket.io/", // Explicitly preserve the /socket.io path
       "^/api/": "/",
     },
   })
 );
 
-// Proxy for API requests - strip the '/api' prefix
-// app.use(
-//   "/api",
-//   createProxyMiddleware({
-//     target: TARGET_SERVER_URL,
-//     changeOrigin: true,
-//     logger: console,
-//     pathRewrite: {
-//       "^/api": "", // Remove the /api prefix when forwarding
-//     },
-//   })
-// );
-
 // Server startup
 const server = http.createServer(app);
+
+// Yes... manual setup of upgrade event works... It looks like routing
+// Caused an upgrade connection problem... I narrowed it down... After 3 days...
+server.on("upgrade", wsProxy.upgrade);
 
 server.listen(PORT, () => {
   console.log(`Proxy server running on port ${PORT}`);

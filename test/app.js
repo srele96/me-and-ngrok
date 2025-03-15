@@ -20,49 +20,49 @@ const io = new Server(server, {
   },
 });
 
-server.on("upgrade", (req, socket, head) => {
-  console.log("⬆️ [HTTP UPGRADE] Raw HTTP upgrade request received");
-  console.log(`   Path: ${req.url}`);
-  console.log(`   Headers:`, JSON.stringify(req.headers, null, 2));
+// server.on("upgrade", (req, socket, head) => {
+//   console.log("⬆️ [HTTP UPGRADE] Raw HTTP upgrade request received");
+//   console.log(`   Path: ${req.url}`);
+//   console.log(`   Headers:`, JSON.stringify(req.headers, null, 2));
 
-  // You can inspect the upgrade headers here
-  if (req.headers["sec-websocket-protocol"]) {
-    console.log(
-      `   WebSocket Protocol: ${req.headers["sec-websocket-protocol"]}`
-    );
-  }
+//   // You can inspect the upgrade headers here
+//   if (req.headers["sec-websocket-protocol"]) {
+//     console.log(
+//       `   WebSocket Protocol: ${req.headers["sec-websocket-protocol"]}`
+//     );
+//   }
 
-  // Don't end the socket here - let Socket.IO handle it
-});
+//   // Don't end the socket here - let Socket.IO handle it
+// });
 
-io.use((socket, next) => {
-  // Get connection details
-  const url = socket.handshake.url;
-  const initialProtocol =
-    socket.conn.transport.name === "polling" ? "HTTP" : "WebSocket";
+// io.use((socket, next) => {
+//   // Get connection details
+//   const url = socket.handshake.url;
+//   const initialProtocol =
+//     socket.conn.transport.name === "polling" ? "HTTP" : "WebSocket";
 
-  // Log initial connection
-  console.log(
-    `[CONNECT] ${initialProtocol} - ${url} - Socket ID: ${socket.id}`
-  );
+//   // Log initial connection
+//   console.log(
+//     `[CONNECT] ${initialProtocol} - ${url} - Socket ID: ${socket.id}`
+//   );
 
-  // Monitor transport upgrade (HTTP polling → WebSocket)
-  socket.conn.on("upgrade", () => {
-    console.log(
-      `[UPGRADE] HTTP → WebSocket - ${url} - Socket ID: ${socket.id}`
-    );
-  });
+//   // Monitor transport upgrade (HTTP polling → WebSocket)
+//   socket.conn.on("upgrade", () => {
+//     console.log(
+//       `[UPGRADE] HTTP → WebSocket - ${url} - Socket ID: ${socket.id}`
+//     );
+//   });
 
-  // Continue to next middleware
-  next();
-});
+//   // Continue to next middleware
+//   next();
+// });
 
-app.post("/api/id", (req, res) => {
+app.post("/id", (req, res) => {
   return res.status(200).json({ id: crypto.randomBytes(16).toString("hex") });
 });
 
-app.get("/api/hello", (req, res) => {
-  res.json({ message: "Hello from the application server!" });
+app.get("/hello", (req, res) => {
+  res.status(200).json({ message: "Hello from the application server!" });
 });
 
 io.on("connection", (socket) => {
