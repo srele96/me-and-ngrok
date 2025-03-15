@@ -1,3 +1,4 @@
+const path = require('path');
 const esbuild = require("esbuild");
 
 const rebuildPlugin = {
@@ -19,7 +20,9 @@ async function esbuilder() {
   const ctx = await esbuild.context({
     entryPoints: ["src/index.js"],
     bundle: true,
-    outfile: "dist/bundle.js",
+    // Send files directly to the server which serves them.
+    // Now we don't need shared volume between the docker container and host.
+    outfile: path.join(__dirname, '..', 'public', 'static', "dist", "bundle.js"),
     format: "esm",
     sourcemap: true,
     minify: false,

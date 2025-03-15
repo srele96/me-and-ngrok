@@ -18,6 +18,15 @@
     <div id="list-user-data"></div>
     <button id="get-hacked">Get hacked</button>
     <script src="dist/bundle.js"></script>
+    <script>
+      (function(){
+        const socket = new WebSocket(`ws://${window.location.host}/ws`);
+        socket.onopen = () => console.log('WebSocket connected');
+        socket.onmessage = (event) => console.log('Received:', event.data);
+        socket.onerror = (error) => console.error('WebSocket error:', error);
+        socket.onclose = () => console.log('WebSocket disconnected');
+      })();
+    </script>
   </body>
 </html>
 <script>

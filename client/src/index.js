@@ -2,147 +2,161 @@ import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { io } from "socket.io-client";
 
-async function createIO() {
-  try {
-    const X_USER_ID = "X-User-Id";
+// async function createIO() {
+//   try {
+//     const X_USER_ID = "X-User-Id";
 
-    // websocket connection fails to be established
-    // check if it is related to the SYNC in the docker-compose
-    // becuase i am sure that websocket connection worked yesterday...
-    // when i used SYNC and WATCH in docker-compose
-    const response = await fetch("/api/id/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    });
+//     // websocket connection fails to be established
+//     // check if it is related to the SYNC in the docker-compose
+//     // becuase i am sure that websocket connection worked yesterday...
+//     // when i used SYNC and WATCH in docker-compose
+//     const response = await fetch("/api/id/", {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}.`);
-    }
+//     if (!response.ok) {
+//       throw new Error(`HTTP error ${response.status}.`);
+//     }
 
-    const { id }= await response.json();
+//     const { id } = await response.json();
 
-    sessionStorage.setItem(X_USER_ID, id);
+//     sessionStorage.setItem(X_USER_ID, id);
 
-    const socket = io("", {
-      // THE PATH MUST BE EXACTLY /api/socket-io/
-      // THIS DOES NOT WORK /api/socket-io
-      path: "/api/socket-io/",
-      extraHeaders: {
-        [X_USER_ID]: id,
-      },
-    });
+//     const socket = io("", {
+//       // THE PATH MUST BE EXACTLY /api/socket.io/
+//       // THIS DOES NOT WORK /api/socket-io
+//       path: "/api/socket.io/",
+//       extraHeaders: {
+//         [X_USER_ID]: id,
+//       },
+//     });
 
-    window.dispatchEvent(
-      new CustomEvent("socketIOReady", { detail: { socket } })
-    );
-  } catch (error) {
-    window.dispatchEvent(
-      new CustomEvent("socketIOError", { detail: { error } })
-    );
-  }
-}
+//     window.dispatchEvent(
+//       new CustomEvent("socketIOReady", { detail: { socket } })
+//     );
+//   } catch (error) {
+//     window.dispatchEvent(
+//       new CustomEvent("socketIOError", { detail: { error } })
+//     );
+//   }
+// }
 
-// Call outside of react tree to avoid creating multiple connections.
-createIO();
+// // Call outside of react tree to avoid creating multiple connections.
+// createIO();
 
-function useSocket() {
-  const [socket, setSocket] = useState(null);
-  const [error, setError] = useState(null);
+// // new CustomEvent("socketIOReady", {
+// //   detail: {
+// //     socket: io("", {
+// //       path: "/api/socket.io/",
+// //     }),
+// //   },
+// // });
 
-  useEffect(() => {
-    function onSocketIOReady(event) {
-      setSocket(event.detail.socket);
-    }
+// function useSocket() {
+//   const [socket, setSocket] = useState(null);
+//   const [error, setError] = useState(null);
 
-    window.addEventListener("socketIOReady", onSocketIOReady);
+//   useEffect(() => {
+//     function onSocketIOReady(event) {
+//       setSocket(event.detail.socket);
+//     }
 
-    return () => {
-      window.removeEventListener("socketIOReady", onSocketIOReady);
-    };
-  }, []);
+//     window.addEventListener("socketIOReady", onSocketIOReady);
 
-  useEffect(() => {
-    function onSocketIOError(event) {
-      setError(event.detail.error);
-    }
-    window.addEventListener("socketIOError", onSocketIOError);
-    return () => {
-      window.removeEventListener("socketIOError", onSocketIOError);
-    };
-  }, []);
+//     return () => {
+//       window.removeEventListener("socketIOReady", onSocketIOReady);
+//     };
+//   }, []);
 
-  return { socket, error };
-}
+//   useEffect(() => {
+//     function onSocketIOError(event) {
+//       setError(event.detail.error);
+//     }
+//     window.addEventListener("socketIOError", onSocketIOError);
+//     return () => {
+//       window.removeEventListener("socketIOError", onSocketIOError);
+//     };
+//   }, []);
 
-const App = () => {
-  const { socket, error } = useSocket();
-  const [isConnected, setIsConnected] = useState(false);
-  const [fooEvents, setFooEvents] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+//   return { socket, error };
+// }
 
-  useEffect(() => {
-    function onConnect() {
-      setIsConnected(true);
-    }
+// const App = () => {
+//   const { socket, error } = useSocket();
+//   const [isConnected, setIsConnected] = useState(false);
+//   const [fooEvents, setFooEvents] = useState([]);
+//   const [notifications, setNotifications] = useState([]);
 
-    function onDisconnect() {
-      setIsConnected(false);
-    }
+//   useEffect(() => {
+//     function onConnect() {
+//       setIsConnected(true);
+//     }
 
-    function onFooEvent(value) {
-      setFooEvents((previous) => [...previous, value]);
-    }
+//     function onDisconnect() {
+//       setIsConnected(false);
+//     }
 
-    function onNotification(value) {
-      setNotifications(previous => [...previous, value]);
-    }
+//     function onFooEvent(value) {
+//       setFooEvents((previous) => [...previous, value]);
+//     }
 
-    if (socket) {
-      socket.on('notification', onNotification);
-      socket.on("connect", onConnect);
-      socket.on("disconnect", onDisconnect);
-      socket.on("foo", onFooEvent);
-    }
+//     function onNotification(value) {
+//       setNotifications((previous) => [...previous, value]);
+//     }
 
-    return () => {
-      if (socket) {
-        socket.off('notification', onNotification);
-        socket.off("connect", onConnect);
-        socket.off("disconnect", onDisconnect);
-        socket.off("foo", onFooEvent);
-      }
-    };
-  }, [socket]);
+//     if (socket) {
+//       socket.on("notification", onNotification);
+//       socket.on("connect", onConnect);
+//       socket.on("disconnect", onDisconnect);
+//       socket.on("foo", onFooEvent);
+//     }
 
-  function createStatus() {
-    if (!socket && !error) {
-      return 'Creating socket...';
-    } else {
-      if (socket) {
-        return isConnected ? 'Connected' : 'Disconnected';
-      }
-      if (error) {
-        return 'Failed to create socket. ' + error.message;
-      }
-      return 'Something went horribly wrong...';
-    }
-  }
+//     return () => {
+//       if (socket) {
+//         socket.off("notification", onNotification);
+//         socket.off("connect", onConnect);
+//         socket.off("disconnect", onDisconnect);
+//         socket.off("foo", onFooEvent);
+//       }
+//     };
+//   }, [socket]);
 
-  return (
-    <div>
-      <h1>SocketIO demo</h1>
-      <p>{createStatus()}</p>
-      <p>Notifications</p>
-      <ul>
-        {notifications.map((notification) => {
-          return <li key={notification.id}>{notification.value}</li>;
-        })}
-      </ul>
-    </div>
-  );
-};
+//   function createStatus() {
+//     if (!socket && !error) {
+//       return "Creating socket...";
+//     } else {
+//       if (socket) {
+//         return isConnected ? "Connected" : "Disconnected";
+//       }
+//       if (error) {
+//         return "Failed to create socket. " + error.message;
+//       }
+//       return "Something went horribly wrong...";
+//     }
+//   }
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
+//   return (
+//     <div>
+//       <h1>SocketIO demo</h1>
+//       <p>{createStatus()}</p>
+//       <p>Notifications</p>
+//       <ul>
+//         {notifications.map((notification) => {
+//           return <li key={notification.id}>{notification.value}</li>;
+//         })}
+//       </ul>
+//     </div>
+//   );
+// };
+
+// const root = ReactDOM.createRoot(document.getElementById("root"));
+// root.render(<App />);
+
+const socket = io("", {
+  path: "/api/socket.io/",
+});
+
+socket.on("notification", console.log);

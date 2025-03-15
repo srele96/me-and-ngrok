@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Socket.IO Proxy Example</title>
+  </head>
+  <body>
+    <h1>Socket.IO Proxy Example</h1>
+
+    <div class="container">
+      <h2>REST API Test</h2>
+      <button id="api-button">Test API</button>
+      <div id="api-response"></div>
+    </div>
+
+    <div class="container">
+      <h2>Socket.IO Chat</h2>
+      <div id="connection-status">Not connected</div>
+
+      <form id="message-form">
+        <input type="text" id="message-input" placeholder="Type a message..." />
+        <button type="submit">Send</button>
+      </form>
+
+      <div id="messages"></div>
+    </div>
+
+    <!-- Import Socket.IO client from CDN -->
+    <script src="/api/socket.io/socket.io.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // Elements
+        const apiButton = document.getElementById("api-button");
+        const apiResponse = document.getElementById("api-response");
+        const connectionStatus = document.getElementById("connection-status");
+        const messageForm = document.getElementById("message-form");
+        const messageInput = document.getElementById("message-input");
+        const messagesContainer = document.getElementById("messages");
+
+        // Connect to Socket.IO server
+        // Note: No need to specify the full URL because we're proxying through the same domain
+        // const socket = io("", {
+        //   path: "/api/socket.io/",
+        // });
+        const socket = io("", {
+          path: "/api/socket.io/",
+          transports: ["websocket", "polling"],
+        });
+
+        socket.on("connect_error", (err) => {
+          console.log("Connection error: ", err.message);
+        });
+
+        socket.on("disconnect", (reason) => {
+          console.log("Disconnected: ", reason);
+
+          // If the server disconnected us, try to reconnect
+          if (reason === "io server disconnect") {
+            socket.connect();
+          }
+        });
+
+        socket.on("connect", () => {
+          console.log("Connected successfully with ID: ", socket.id);
+        });
+
+        // Handle form submission
+        messageForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const text = messageInput.value.trim();
+
+          if (text) {
+            // Send message to server
+            socket.emit("message", { text });
+
+            // Add message to UI
+            addMessage("sent", `You: ${text}`);
+
+            // Clear input
+            messageInput.value = "";
+          }
+        });
+
+        // Listen for responses from the server
+        socket.on("response", (data) => {
+          addMessage("received", `Server: ${data.message}`, data.timestamp);
+        });
+
+        // Listen for broadcasts from other clients
+        socket.on("broadcast", (data) => {
+          addMessage("broadcast", data.message, data.timestamp);
+        });
+
+        // Test REST API
+        apiButton.addEventListener("click", async () => {
+          try {
+            const response = await fetch("/api/hello");
+            const data = await response.json();
+            apiResponse.textContent = JSON.stringify(data, null, 2);
+          } catch (error) {
+            apiResponse.textContent = `Error: ${error.message}`;
+          }
+        });
+
+        // Utility function to add messages to the UI
+        function addMessage(type, text, timestamp = new Date().toISOString()) {
+          const messageElement = document.createElement("div");
+          messageElement.classList.add("message", type);
+
+          const messageText = document.createElement("div");
+          messageText.textContent = text;
+
+          const timestampElement = document.createElement("div");
+          timestampElement.classList.add("timestamp");
+          timestampElement.textContent = new Date(
+            timestamp
+          ).toLocaleTimeString();
+
+          messageElement.appendChild(messageText);
+          messageElement.appendChild(timestampElement);
+
+          messagesContainer.appendChild(messageElement);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      });
+    </script>
+  </body>
+</html>
