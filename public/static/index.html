@@ -24,30 +24,30 @@
   (function () {
     // Function to fetch and display user data
     function fetchUserData() {
-      fetch("/api")
+      fetch('/api')
         .then((response) => response.json())
         .then((users) => {
-          const listContainer = document.getElementById("list-user-data");
+          const listContainer = document.getElementById('list-user-data');
           if (!listContainer) {
             console.error("Element with id 'list-user-data' not found.");
             return;
           }
 
           // Clear previous list
-          listContainer.innerHTML = "";
+          listContainer.innerHTML = '';
 
           // Check if users exist
           if (users.length === 0) {
-            listContainer.innerHTML = "<p>No users found.</p>";
+            listContainer.innerHTML = '<p>No users found.</p>';
             return;
           }
 
           // Create a list element
-          const ul = document.createElement("ul");
+          const ul = document.createElement('ul');
 
           // Iterate over users and create list items
           users.forEach((user) => {
-            const li = document.createElement("li");
+            const li = document.createElement('li');
             li.textContent = `Name: ${user.name}, Age: ${user.age}`;
             ul.appendChild(li);
           });
@@ -55,50 +55,50 @@
           // Append list to container
           listContainer.appendChild(ul);
         })
-        .catch((error) => console.error("Error fetching user data:", error));
+        .catch((error) => console.error('Error fetching user data:', error));
     }
 
-    const button = document.getElementById("get-user-data");
-    button.addEventListener("click", fetchUserData);
+    const button = document.getElementById('get-user-data');
+    button.addEventListener('click', fetchUserData);
 
     // Add event listener to button
-    document.addEventListener("DOMContentLoaded", fetchUserData);
+    document.addEventListener('DOMContentLoaded', fetchUserData);
   })();
 
   (function () {
     function generateForm() {
-      fetch("/api/schema")
+      fetch('/api/schema')
         .then((response) => response.json())
         .then((schema) => {
-          const formContainer = document.getElementById("form-container");
+          const formContainer = document.getElementById('form-container');
           if (!formContainer) {
             console.error("Element with id 'form-container' not found.");
             return;
           }
 
           // Create form element
-          const form = document.createElement("form");
-          form.id = "dynamic-form";
+          const form = document.createElement('form');
+          form.id = 'dynamic-form';
 
           // Iterate over schema properties and create input fields
           for (const field in schema.properties) {
             const fieldConfig = schema.properties[field];
 
             // Create label
-            const label = document.createElement("label");
+            const label = document.createElement('label');
             label.textContent = `${field}: `;
-            label.setAttribute("for", field);
+            label.setAttribute('for', field);
 
             // Create input field
-            const input = document.createElement("input");
+            const input = document.createElement('input');
             input.id = field;
             input.name = field;
 
             // Set input type based on schema
-            if (fieldConfig.type === "string") {
-              input.type = "text";
-            } else if (fieldConfig.type === "integer") {
-              input.type = "number";
+            if (fieldConfig.type === 'string') {
+              input.type = 'text';
+            } else if (fieldConfig.type === 'integer') {
+              input.type = 'number';
               input.min = fieldConfig.minimum || 0; // Apply minimum constraint if exists
             }
 
@@ -110,45 +110,45 @@
             // Append label and input to form
             form.appendChild(label);
             form.appendChild(input);
-            form.appendChild(document.createElement("br"));
+            form.appendChild(document.createElement('br'));
           }
 
           // Create submit button
-          const submitButton = document.createElement("button");
-          submitButton.type = "submit";
-          submitButton.textContent = "Submit";
+          const submitButton = document.createElement('button');
+          submitButton.type = 'submit';
+          submitButton.textContent = 'Submit';
 
           // Append button to form
           form.appendChild(submitButton);
 
           // Prevent form submission from refreshing the page
-          form.addEventListener("submit", function (event) {
+          form.addEventListener('submit', function (event) {
             event.preventDefault(); // Prevent page refresh
 
             // Collect form data
             const formData = {};
             new FormData(form).forEach((value, key) => {
-              formData[key] = key === "age" ? parseInt(value) : value;
+              formData[key] = key === 'age' ? parseInt(value) : value;
             });
 
             // Send data via fetch
-            fetch("/api", {
-              method: "POST",
+            fetch('/api', {
+              method: 'POST',
               headers: {
-                "Content-Type": "application/json",
+                'Content-Type': 'application/json',
               },
               body: JSON.stringify(formData),
             })
               .then((response) => response.json())
-              .then((data) => console.log("Success:", data))
-              .catch((error) => console.error("Error:", error));
+              .then((data) => console.log('Success:', data))
+              .catch((error) => console.error('Error:', error));
           });
 
-          formContainer.innerHTML = "";
+          formContainer.innerHTML = '';
           // Append form to container
           formContainer.appendChild(form);
         })
-        .catch((error) => console.error("Error fetching schema:", error));
+        .catch((error) => console.error('Error fetching schema:', error));
     }
 
     // Call function to generate form
@@ -156,11 +156,11 @@
   })();
 
   (function () {
-    var getHacked = document.getElementById("get-hacked");
-    getHacked.addEventListener("click", function () {
-      var body = document.getElementsByTagName("body")[0];
-      var p = document.createElement("p");
-      p.innerHTML = "zdravo";
+    var getHacked = document.getElementById('get-hacked');
+    getHacked.addEventListener('click', function () {
+      var body = document.getElementsByTagName('body')[0];
+      var p = document.createElement('p');
+      p.innerHTML = 'zdravo';
       body.appendChild(p);
     });
   })();

@@ -1,0 +1,5 @@
+dist/*
+# Keep special placeholder to commit directory.
+!dist/README.txt
+
+node_modules

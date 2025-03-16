@@ -61,6 +61,10 @@ docker compose up
 
 Open [the server](http://localhost:7000)
 
+## How to format
+
+I use `npx prettier --write .` from the root... Each module has its own `package.json` so they should be indepent repositories. But at this moment i'm just trying to get a working app... and use ai...
+
 ## Disclaimer
 
 This code is highly AI generated LOL! Actually i barely wrote code myself, i mostly copy pasted and prompted for the errors, solutions, and code that does what i want it to.

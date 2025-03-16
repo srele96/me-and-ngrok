@@ -1,45 +1,45 @@
-import React, { useState, useEffect } from "react";
-import ReactDOM from "react-dom/client";
-import { io } from "socket.io-client";
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom/client';
+import { io } from 'socket.io-client';
 
 async function createIO() {
   try {
-    const X_USER_ID = "X-User-Id";
+    const X_USER_ID = 'X-User-Id';
 
     // websocket connection fails to be established
     // check if it is related to the SYNC in the docker-compose
     // becuase i am sure that websocket connection worked yesterday...
     // when i used SYNC and WATCH in docker-compose
-    const response = await fetch("/api/id/", {
-      method: "POST",
+    const response = await fetch('/api/id/', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json"
-      }
+        'Content-Type': 'application/json',
+      },
     });
 
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}.`);
     }
 
-    const { id }= await response.json();
+    const { id } = await response.json();
 
     sessionStorage.setItem(X_USER_ID, id);
 
-    const socket = io("", {
+    const socket = io('', {
       // THE PATH MUST BE EXACTLY /api/socket-io/
       // THIS DOES NOT WORK /api/socket-io
-      path: "/api/socket-io/",
+      path: '/api/socket-io/',
       extraHeaders: {
         [X_USER_ID]: id,
       },
     });
 
     window.dispatchEvent(
-      new CustomEvent("socketIOReady", { detail: { socket } })
+      new CustomEvent('socketIOReady', { detail: { socket } }),
     );
   } catch (error) {
     window.dispatchEvent(
-      new CustomEvent("socketIOError", { detail: { error } })
+      new CustomEvent('socketIOError', { detail: { error } }),
     );
   }
 }
@@ -56,10 +56,10 @@ function useSocket() {
       setSocket(event.detail.socket);
     }
 
-    window.addEventListener("socketIOReady", onSocketIOReady);
+    window.addEventListener('socketIOReady', onSocketIOReady);
 
     return () => {
-      window.removeEventListener("socketIOReady", onSocketIOReady);
+      window.removeEventListener('socketIOReady', onSocketIOReady);
     };
   }, []);
 
@@ -67,9 +67,9 @@ function useSocket() {
     function onSocketIOError(event) {
       setError(event.detail.error);
     }
-    window.addEventListener("socketIOError", onSocketIOError);
+    window.addEventListener('socketIOError', onSocketIOError);
     return () => {
-      window.removeEventListener("socketIOError", onSocketIOError);
+      window.removeEventListener('socketIOError', onSocketIOError);
     };
   }, []);
 
@@ -96,22 +96,22 @@ const App = () => {
     }
 
     function onNotification(value) {
-      setNotifications(previous => [...previous, value]);
+      setNotifications((previous) => [...previous, value]);
     }
 
     if (socket) {
       socket.on('notification', onNotification);
-      socket.on("connect", onConnect);
-      socket.on("disconnect", onDisconnect);
-      socket.on("foo", onFooEvent);
+      socket.on('connect', onConnect);
+      socket.on('disconnect', onDisconnect);
+      socket.on('foo', onFooEvent);
     }
 
     return () => {
       if (socket) {
         socket.off('notification', onNotification);
-        socket.off("connect", onConnect);
-        socket.off("disconnect", onDisconnect);
-        socket.off("foo", onFooEvent);
+        socket.off('connect', onConnect);
+        socket.off('disconnect', onDisconnect);
+        socket.off('foo', onFooEvent);
       }
     };
   }, [socket]);
@@ -144,5 +144,5 @@ const App = () => {
   );
 };
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);

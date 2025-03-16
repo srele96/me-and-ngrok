@@ -15,7 +15,7 @@ services:
       context: ./public
     env_file: ./public/.env.docker
     ports:
-      - "7000:7000"
+      - '7000:7000'
     networks:
       - app-network
     # The service needs to access the files in this directory to be able to
