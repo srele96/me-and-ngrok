@@ -15,7 +15,6 @@ const io = socketIo(server, {
 });
 
 io.use((socket, next) => {
-  console.log(socket.handshake.headers);
   socket.userId = socket.handshake.headers['x-user-id'];
   next();
 });
@@ -61,9 +60,9 @@ app.use(bodyParser.json());
 const router = express.Router();
 
 router.post('/id', (req, res) => {
-  console.log('received request /id');
   const header = 'X-User-ID';
   const id = crypto.randomBytes(32).toString('hex');
+
   try {
     users.insert({ id });
     return res.status(200).json({ id });
@@ -109,7 +108,6 @@ router.get('/schema', (req, res) => {
 app.use('/api', router);
 
 app.use((req, res, next) => {
-  console.log('request', req.path);
   res.status(404).json({
     error: 'Not Found',
     message: `The route ${req.originalUrl} does not exist`,

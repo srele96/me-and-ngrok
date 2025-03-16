@@ -6,10 +6,6 @@ async function createIO() {
   try {
     const X_USER_ID = 'X-User-Id';
 
-    // websocket connection fails to be established
-    // check if it is related to the SYNC in the docker-compose
-    // becuase i am sure that websocket connection worked yesterday...
-    // when i used SYNC and WATCH in docker-compose
     const response = await fetch('/api/id/', {
       method: 'POST',
       headers: {

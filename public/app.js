@@ -50,7 +50,7 @@ app.use(
     pathFilter: '/api',
     // To send requests within internal network, we have to use the name of the service
     // https://docs.docker.com/compose/how-tos/networking/
-    target: `http://${HOST}:8000/`, // URL of the API service
+    target: `http://${HOST}:8000/`,
     ws: true,
     logger: logger,
   }),

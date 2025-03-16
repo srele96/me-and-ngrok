@@ -1,6 +1,5 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
-console.log(process.env.NGROK_AUTHTOKEN);
 
 const ngrok = require('@ngrok/ngrok');
 const qrcode = require('qrcode-terminal');
