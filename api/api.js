@@ -15,6 +15,7 @@ const io = socketIo(server, {
 });
 
 io.use((socket, next) => {
+  // I wonder if i need to do this... or socketio will always send that socket id in headers...
   socket.userId = socket.handshake.headers['x-user-id'];
   next();
 });
@@ -30,6 +31,11 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('A user disconnected');
+  });
+
+  socket.on('sendToBackend', (value) => {
+    const xUserId = socket.handshake.headers['x-user-id'];
+    socket.emit('sendToFrontend', { value, 'x-user-id': xUserId });
   });
 });
 
