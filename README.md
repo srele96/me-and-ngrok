@@ -59,6 +59,8 @@ docker compose build
 docker compose up
 ```
 
+Then, press `w` to activate docker-compose watch mode. You need this mode, docker-compose will restart service on code changes.
+
 Open [the server](http://localhost:7000)
 
 ## How to format
