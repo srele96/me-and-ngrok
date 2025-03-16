@@ -47,12 +47,13 @@ app.use((req, res, next) => {
 });
 
 app.use(
-  "/api",
   createProxyMiddleware({
+    pathFilter: "/api",
     // To send requests within internal network, we have to use the name of the service
     // https://docs.docker.com/compose/how-tos/networking/
-    target: `http://${HOST}:8000/api`, // URL of the API service
-    ws: true
+    target: `http://${HOST}:8000/`, // URL of the API service
+    ws: true,
+    logger: logger,
   })
 );
 
