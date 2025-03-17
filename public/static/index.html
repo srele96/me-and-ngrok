@@ -16,7 +16,6 @@
     <div id="root"></div>
     <button id="get-user-data">Get user data</button>
     <div id="list-user-data"></div>
-    <button id="get-hacked">Get hacked</button>
     <script src="dist/bundle.js"></script>
     <script>
       (function () {
@@ -153,16 +152,6 @@
 
         // Call function to generate form
         generateForm();
-      })();
-
-      (function () {
-        var getHacked = document.getElementById('get-hacked');
-        getHacked.addEventListener('click', function () {
-          var body = document.getElementsByTagName('body')[0];
-          var p = document.createElement('p');
-          p.innerHTML = 'zdravo';
-          body.appendChild(p);
-        });
       })();
     </script>
   </body>
