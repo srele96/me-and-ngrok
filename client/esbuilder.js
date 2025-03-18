@@ -1,4 +1,5 @@
 const esbuild = require('esbuild');
+const path = require('path');
 
 const rebuildPlugin = {
   name: 'rebuild-plugin',
@@ -17,9 +18,9 @@ const rebuildPlugin = {
 
 async function esbuilder() {
   const ctx = await esbuild.context({
-    entryPoints: ['src/index.js'],
+    entryPoints: [path.join(__dirname, 'src', 'index.js')],
     bundle: true,
-    outfile: 'dist/bundle.js',
+    outfile: path.join(__dirname, 'dist', 'bundle.js'),
     format: 'esm',
     sourcemap: true,
     minify: false,
