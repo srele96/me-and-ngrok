@@ -72,8 +72,84 @@ function useSocket() {
   return { socket, error };
 }
 
-const App = () => {
-  const { socket, error } = useSocket();
+class Base {
+  #context = null;
+
+  constructor(context) {
+    if (context) {
+      this.#context = context;
+    }
+  }
+
+  set context(context) {
+    if (context) {
+      this.#context = context;
+    }
+  }
+
+  get context() {
+    return this.#context;
+  }
+
+  join() {
+    console.log('invalid implementation');
+  }
+
+  getStatus() {
+    return 'base';
+  }
+}
+
+class Something extends Base {
+  join() {
+    this.context.setState(new SomethingNew(this.context));
+  }
+
+  getStatus() {
+    return 'something'
+  }
+}
+
+class SomethingNew extends Base {
+  join() {
+    this.context.setState(new Something(this.context));
+  }
+
+  getStatus() {
+    return 'somethingNew'
+  }
+}
+
+function useRoomClient() {
+  const [state, setState] = useState(() => new Something());
+
+  if (!state.context) {
+    state.context = { state, setState };
+  }
+
+  return {
+    join() {
+      state.join();
+    },
+    getStatus() {
+      return state.getStatus();
+    }
+  }
+}
+
+function RoomClient({ socket }) {
+  const roomClient = useRoomClient();
+  
+  return (
+    <div>
+      <p>{roomClient.getStatus()}</p>
+      <button onClick={roomClient.join}>Join</button>
+      <h1>Room client</h1>
+    </div>
+  )
+}
+
+function Game({ socket }) {
   const [isConnected, setIsConnected] = useState(false);
   const [fooEvents, setFooEvents] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -103,43 +179,25 @@ const App = () => {
       setReceivedString(value);
     }
 
-    if (socket) {
-      socket.on('notification', onNotification);
-      socket.on('connect', onConnect);
-      socket.on('disconnect', onDisconnect);
-      socket.on('foo', onFooEvent);
-      socket.on('sendToFrontend', onSendToBackend);
-    }
+    socket.on('notification', onNotification);
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('foo', onFooEvent);
+    socket.on('sendToFrontend', onSendToBackend);
 
     return () => {
-      if (socket) {
-        socket.off('notification', onNotification);
-        socket.off('connect', onConnect);
-        socket.off('disconnect', onDisconnect);
-        socket.off('foo', onFooEvent);
-        socket.off('sendToFrontend', onSendToBacked);
-      }
+      socket.off('notification', onNotification);
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('foo', onFooEvent);
+      socket.off('sendToFrontend', onSendToBacked);
     };
   }, [socket]);
 
-  function createStatus() {
-    if (!socket && !error) {
-      return 'Creating socket...';
-    } else {
-      if (socket) {
-        return isConnected ? 'Connected' : 'Disconnected';
-      }
-      if (error) {
-        return 'Failed to create socket. ' + error.message;
-      }
-      return 'Something went horribly wrong...';
-    }
-  }
 
   return (
     <div>
-      <h1>SocketIO demo</h1>
-      <p>{createStatus()}</p>
+      <h1>Game</h1>
       {receivedString['x-user-id'] && (
         <div>x-user-id={receivedString['x-user-id']}</div>
       )}
@@ -167,6 +225,35 @@ const App = () => {
           return <li key={notification.id}>{notification.value}</li>;
         })}
       </ul>
+      <RoomClient socket={socket} />
+    </div>
+  )
+}
+
+function GameManager({ socket, error }) {
+  function getKeys(obj) {
+    return Object.keys(props).join(',');
+  }
+
+  if (!socket && !error) {
+    return <p>Creating socket...</p>
+  } else {
+    if (socket) {
+      return <Game socket={socket} />
+    }
+    if (error) {
+      return <p>'Failed to create socket. ' + error.message</p>
+    }
+    throw new Error(`Unexpected state. Missing: ${getKeys(props)}.`);
+  }
+}
+
+const App = () => {
+  const { socket, error } = useSocket();
+
+  return (
+    <div>
+      <GameManager socket={socket} error={error} />
     </div>
   );
 };
