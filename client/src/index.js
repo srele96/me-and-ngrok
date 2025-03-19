@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { io } from 'socket.io-client';
+import { useRoomClient } from './RoomClient';
 
 async function createIO() {
   try {
@@ -72,81 +73,16 @@ function useSocket() {
   return { socket, error };
 }
 
-class Base {
-  #context = null;
-
-  constructor(context) {
-    if (context) {
-      this.#context = context;
-    }
-  }
-
-  set context(context) {
-    if (context) {
-      this.#context = context;
-    }
-  }
-
-  get context() {
-    return this.#context;
-  }
-
-  join() {
-    console.log('invalid implementation');
-  }
-
-  getStatus() {
-    return 'base';
-  }
-}
-
-class Something extends Base {
-  join() {
-    this.context.setState(new SomethingNew(this.context));
-  }
-
-  getStatus() {
-    return 'something'
-  }
-}
-
-class SomethingNew extends Base {
-  join() {
-    this.context.setState(new Something(this.context));
-  }
-
-  getStatus() {
-    return 'somethingNew'
-  }
-}
-
-function useRoomClient() {
-  const [state, setState] = useState(() => new Something());
-
-  if (!state.context) {
-    state.context = { state, setState };
-  }
-
-  return {
-    join() {
-      state.join();
-    },
-    getStatus() {
-      return state.getStatus();
-    }
-  }
-}
-
 function RoomClient({ socket }) {
-  const roomClient = useRoomClient();
-  
+  const roomClient = useRoomClient(socket);
+
   return (
     <div>
-      <p>{roomClient.getStatus()}</p>
-      <button onClick={roomClient.join}>Join</button>
+      <p>{roomClient.getStatusMessage()}</p>
+      <button onClick={() => roomClient.join('roomId')}>Join</button>
       <h1>Room client</h1>
     </div>
-  )
+  );
 }
 
 function Game({ socket }) {
@@ -194,7 +130,6 @@ function Game({ socket }) {
     };
   }, [socket]);
 
-
   return (
     <div>
       <h1>Game</h1>
@@ -227,7 +162,7 @@ function Game({ socket }) {
       </ul>
       <RoomClient socket={socket} />
     </div>
-  )
+  );
 }
 
 function GameManager({ socket, error }) {
@@ -236,13 +171,13 @@ function GameManager({ socket, error }) {
   }
 
   if (!socket && !error) {
-    return <p>Creating socket...</p>
+    return <p>Creating socket...</p>;
   } else {
     if (socket) {
-      return <Game socket={socket} />
+      return <Game socket={socket} />;
     }
     if (error) {
-      return <p>'Failed to create socket. ' + error.message</p>
+      return <p>'Failed to create socket. ' + error.message</p>;
     }
     throw new Error(`Unexpected state. Missing: ${getKeys(props)}.`);
   }

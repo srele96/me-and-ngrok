@@ -1,48 +1,92 @@
+import { useState } from 'react';
+
 class RoomState {
-  constructor(roomClient, room) {
-    this.roomClient = roomClient;
-    this.room = room;
+  #roomClient = null;
+  #roomId = null;
+
+  constructor(roomClient, roomId) {
+    if (roomClient) {
+      this.#roomClient = roomClient;
+    }
+    if (roomId) {
+      this.roomId = roomId;
+    }
   }
 
-  join() {
-    console.error('Invalid operation for current state');
+  set roomClient(roomClient) {
+    if (roomClient) {
+      this.#roomClient = roomClient;
+    }
+  }
+
+  get roomClient() {
+    return this.#roomClient;
+  }
+
+  set roomId(roomId) {
+    if (roomId) {
+      this.#roomId = roomId;
+    }
+  }
+
+  get roomId() {
+    return this.#roomId;
+  }
+
+  join(roomId) {
+    throw new Error('Abstract method join(roomId).');
   }
 
   leave() {
-    console.error('Invalid operation for current state');
+    throw new Error('Abstract method leave().');
   }
 
   getStatusMessage() {
-    return '';
+    throw new Error('Abstract method getStatusMessage().');
+  }
+}
+
+class InitialState extends RoomState {
+  join(roomId) {
+    this.roomClient.setState(new JoiningState(this.roomClient, roomId));
+    this.roomClient.socket.emit('room:join', { roomId });
+  }
+
+  leave() {
+    throw new Error("You aren't in a room.");
+  }
+
+  getStatusMessage() {
+    return 'Not connected to any rooms.';
   }
 }
 
 class DisconnectedState extends RoomState {
-  join() {
-    this.roomClient.setState(new JoiningState(this.roomClient, this.room));
-    this.roomClient.socket.emit('room:join', { room: this.room });
+  join(roomId) {
+    this.roomClient.setState(new JoiningState(this.roomClient, roomId));
+    this.roomClient.socket.emit('room:join', { roomId });
   }
 
   getStatusMessage() {
-    return `Not connected to ${this.room}`;
+    return `Disconnected from the room.`;
   }
 }
 
-
 class JoiningState extends RoomState {
-  constructor(roomClient, room) {
-    super(roomClient, room);
-
+  constructor(roomClient, roomId) {
+    super(roomClient, roomId);
     this.setupListeners();
   }
 
   setupListeners() {
     this.successHandler = () => {
-      this.roomClient.setState(new JoinedState(this.roomClient, this.room));
+      this.roomClient.setState(new JoinedState(this.roomClient, this.roomId));
     };
 
     this.errorHandler = (error) => {
-      this.roomClient.setState(new JoinErrorState(this.roomClient, this.room, error));
+      this.roomClient.setState(
+        new JoinErrorState(this.roomClient, this.roomId, error),
+      );
     };
 
     this.roomClient.socket.once('room:join:success', this.successHandler);
@@ -50,51 +94,54 @@ class JoiningState extends RoomState {
   }
 
   getStatusMessage() {
-    return `Attempting to join the ${this.room}`;
+    return `Attempting to join the room.`;
   }
 }
 
 class JoinedState extends RoomState {
   leave() {
-    this.roomClient.setState(new LeavingState(this.roomClient, this.room));
-    this.roomClient.socket.emit('room:leave', { room: this.room });
+    this.roomClient.setState(new LeavingState(this.roomClient, this.roomId));
+    this.roomClient.socket.emit('room:leave', { roomId: this.roomId });
   }
 
   getStatusMessage() {
-    return `Successfully joined the ${this.room}`;
+    return `Successfully joined the the room.`;
   }
 }
 
 class JoinErrorState extends RoomState {
-  constructor(roomClient, room, error) {
-    super(roomClient, room);
+  constructor(roomClient, roomId, error) {
+    super(roomClient, roomId);
     this.error = error;
   }
 
   join() {
-    this.roomClient.setState(new JoiningState(this.roomClient, this.room));
-    this.roomClient.socket.emit('room:join', { room: this.room });
+    this.roomClient.setState(new JoiningState(this.roomClient, this.roomId));
+    this.roomClient.socket.emit('room:join', { roomId: this.roomId });
   }
 
   getStatusMessage() {
-    return `Failed to join the ${this.room}: ${this.error}`;
+    return `Failed to join the room.`;
   }
 }
 
 class LeavingState extends RoomState {
-  constructor(roomClient, room) {
-    super(roomClient, room);
-
+  constructor(roomClient, roomId) {
+    super(roomClient, roomId);
     this.setupListeners();
   }
 
   setupListeners() {
     this.successHandler = () => {
-      this.roomClient.setState(new DisconnectedState(this.roomClient, this.room));
+      this.roomClient.setState(
+        new DisconnectedState(this.roomClient, this.roomId),
+      );
     };
 
     this.errorHandler = (error) => {
-      this.roomClient.setState(new LeaveErrorState(this.roomClient, this.room, error));
+      this.roomClient.setState(
+        new LeaveErrorState(this.roomClient, this.roomId, error),
+      );
     };
 
     this.roomClient.socket.once('room:leave:success', this.successHandler);
@@ -102,47 +149,49 @@ class LeavingState extends RoomState {
   }
 
   getStatusMessage() {
-    return `Attempting to leave the ${this.room}`;
+    return `Attempting to leave the room.`;
   }
 }
 
 class LeaveErrorState extends RoomState {
-  constructor(roomClient, room, error) {
-    super(roomClient, room);
+  constructor(roomClient, roomId, error) {
+    super(roomClient, roomId);
     this.error = error;
   }
 
   leave() {
-    this.roomClient.setState(new LeavingState(this.roomClient, this.room));
-    this.roomClient.socket.emit('room:leave', { room: this.room });
+    this.roomClient.setState(new LeavingState(this.roomClient, this.roomId));
+    this.roomClient.socket.emit('room:leave', { roomId: this.roomId });
   }
 
   getStatusMessage() {
-    return `Failed to leave the ${this.room}: ${this.error}`;
+    return `Failed to leave the room.`;
   }
 }
 
-class RoomClient {
-  constructor(socket, room) {
-    this.socket = socket;
-    this.room = room;
-    this.state = new DisconnectedState(this, room)
+function useRoomClient(socket) {
+  const [state, setState] = useState(new InitialState());
+
+  if (!state.roomClient) {
+    const roomClient = {
+      state,
+      setState,
+      socket,
+    };
+    state.roomClient = roomClient;
   }
 
-  setState(state) {
-    this.state = state;
-  }
-
-  join() {
-    this.state.join();
-  }
-
-  leave() {
-    this.state.leave();
-  }
-
-  getStatusMessage() {
-    return this.state.getStatusMessage();
-  }
+  return {
+    join(roomId) {
+      state.join(roomId);
+    },
+    leave(roomId) {
+      state.leave();
+    },
+    getStatusMessage() {
+      return state.getStatusMessage();
+    },
+  };
 }
 
+export { useRoomClient };
