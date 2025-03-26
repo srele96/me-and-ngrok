@@ -1,4 +1,3 @@
-const cors = require('cors');
 const express = require('express');
 const bodyParser = require('body-parser');
 const Ajv = require('ajv');
@@ -10,15 +9,36 @@ const crypto = require('crypto');
 const app = express();
 const server = http.createServer(app);
 
+// extend schema to contain map of
+// userID -> { createdAt: Date }
+// Later implement something to clean up > 7 days old objects
+const db = new Loki('memory.db', { autosave: true });
+const collection = db.addCollection('data');
+const users = db.addCollection('users');
+const rooms = db.addCollection('rooms', {
+  unique: ['id'],
+  indices: ['userId', 'roomName'],
+});
+
 const io = socketIo(server, {
   path: '/api/socket-io/',
 });
 
+// The socketio already has userId... maybe i should use that...
 io.use((socket, next) => {
   // I wonder if i need to do this... or socketio will always send that socket id in headers...
   socket.userId = socket.handshake.headers['x-user-id'];
   next();
 });
+
+class Room {
+  constructor(userId, roomName) {
+    this.id = `${userId}_${roomName}`;
+    this.userId = userId;
+    this.roomName = roomName;
+    this.createdAt = new Date();
+  }
+}
 
 io.on('connection', (socket) => {
   console.log('A user ' + socket.userId + ' connected.');
@@ -37,16 +57,52 @@ io.on('connection', (socket) => {
     const xUserId = socket.handshake.headers['x-user-id'];
     socket.emit('sendToFrontend', { value, 'x-user-id': xUserId });
   });
+
+  socket.on('room:list', (data, callback) => {
+    try {
+      // Doesn't work... No clue why... I have to figure it out...
+      const userRooms = rooms.find(
+        { userId: socket.userId },
+        // { $project: { id: 1, roomName: 1, createdAt: 1 } },
+      );
+
+      console.log({ userRooms }, rooms.find());
+
+      callback({ success: true, rooms: userRooms });
+    } catch (error) {
+      console.error(`'room:list' ${error.message}`);
+      callback({
+        success: false,
+        error: `Failed to retrieve rooms.`,
+      });
+    }
+  });
+
+  socket.on('room:create', (data, callback) => {
+    const { roomName } = data;
+
+    try {
+      if (rooms.findOne({ userId: socket.userId, roomName })) {
+        callback({ success: false });
+        return;
+      }
+
+      const room = new Room(socket.userId, roomName);
+
+      const savedRoom = rooms.insert(room);
+
+      callback({ success: true });
+      socket.emit('room:create:success', {
+        id: savedRoom.id,
+        roomName: savedRoom.roomName,
+      });
+    } catch (error) {
+      callback({ success: false });
+    }
+  });
 });
 
 const port = 8000;
-
-// extend schema to contain map of
-// userID -> { createdAt: Date }
-// Later implement something to clean up > 7 days old objects
-const db = new Loki('memory.db', { autosave: true });
-const collection = db.addCollection('data');
-const users = db.addCollection('users');
 
 const ajv = new Ajv();
 
