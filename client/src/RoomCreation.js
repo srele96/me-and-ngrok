@@ -19,14 +19,14 @@ export function useRoomManager(socket) {
     if (!socket) return;
 
     function onRoomCreated(room) {
-      setRooms(prev => [...prev, room]);
+      setRooms((prev) => [...prev, room]);
       setError(null);
     }
 
     function onRoomError(err) {
       setError(err.message);
     }
-    
+
     function onRoomsList(roomsList) {
       setRooms(roomsList);
     }
@@ -137,7 +137,7 @@ export const SocketContext = React.createContext({ socket: null });
 // Provider component to wrap application
 export function RoomProvider({ children, socket }) {
   const roomManager = useRoomManager(socket);
-  
+
   return (
     <SocketContext.Provider value={{ socket }}>
       <RoomContext.Provider value={roomManager}>

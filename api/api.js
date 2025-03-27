@@ -9,9 +9,6 @@ const crypto = require('crypto');
 const app = express();
 const server = http.createServer(app);
 
-// extend schema to contain map of
-// userID -> { createdAt: Date }
-// Later implement something to clean up > 7 days old objects
 const db = new Loki('memory.db', { autosave: true });
 const collection = db.addCollection('data');
 const users = db.addCollection('users');
@@ -41,8 +38,6 @@ class Room {
 }
 
 io.on('connection', (socket) => {
-  console.log('A user ' + socket.userId + ' connected.');
-
   socket.emit('welcome', 'Hello from server!');
 
   socket.on('message', (data) => {
@@ -60,13 +55,7 @@ io.on('connection', (socket) => {
 
   socket.on('room:list', (data, callback) => {
     try {
-      // Doesn't work... No clue why... I have to figure it out...
-      const userRooms = rooms.find(
-        { userId: socket.userId },
-        // { $project: { id: 1, roomName: 1, createdAt: 1 } },
-      );
-
-      console.log({ userRooms }, rooms.find());
+      const userRooms = rooms.find({ userId: socket.userId });
 
       callback({ success: true, rooms: userRooms });
     } catch (error) {
@@ -123,9 +112,35 @@ const router = express.Router();
 
 router.post('/id', (req, res) => {
   const header = 'X-User-ID';
-  const id = crypto.randomBytes(32).toString('hex');
+  const existingId = req.headers[header.toLowerCase()];
+
+  if (existingId) {
+    try {
+      const user = users.findOne({ id: existingId });
+
+      if (!user) {
+        return res.status(401).json({
+          error: 'Invalid user identifier',
+          message: `The provided ${header} does not match any registered user.`,
+        });
+      }
+
+      return res.status(400).json({
+        error: 'User already identified',
+        message:
+          `Request contains existing ${header} header. ` +
+          'Use existing ID instead of generating a new one.',
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: 'Database lookup failed',
+        message: 'Unable to verify user identifier.',
+      });
+    }
+  }
 
   try {
+    const id = crypto.randomBytes(32).toString('hex');
     users.insert({ id });
     return res.status(200).json({ id });
   } catch (error) {
