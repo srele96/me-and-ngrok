@@ -3,11 +3,9 @@ const bodyParser = require('body-parser');
 const Ajv = require('ajv');
 const Loki = require('lokijs');
 const http = require('http');
-const socketIo = require('socket.io');
+const socketIO = require('socket.io');
 const crypto = require('crypto');
-
-const app = express();
-const server = http.createServer(app);
+const session = require('express-session');
 
 const db = new Loki('memory.db', { autosave: true });
 const collection = db.addCollection('data');
@@ -17,16 +15,24 @@ const rooms = db.addCollection('rooms', {
   indices: ['userId', 'roomName'],
 });
 
-const io = socketIo(server, {
-  path: '/api/socket-io/',
+const app = express();
+const server = http.createServer(app);
+
+const sessionMiddleware = session({
+  secret: 'my_secret_key', // Requires .env file
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    secure: false, // Requires .env file
+    maxAge: 1000 * 60 * 60 * 24, // Cookie expires in 1 day
+  },
 });
 
-// The socketio already has userId... maybe i should use that...
-io.use((socket, next) => {
-  // I wonder if i need to do this... or socketio will always send that socket id in headers...
-  socket.userId = socket.handshake.headers['x-user-id'];
-  next();
-});
+app.use(sessionMiddleware);
+
+const io = new socketIO.Server(server, { path: '/api/socket-io/' });
+
+io.engine.use(sessionMiddleware);
 
 class Room {
   constructor(userId, roomName) {
@@ -37,8 +43,91 @@ class Room {
   }
 }
 
+class User {
+  constructor() {
+    this.id = crypto.randomBytes(32).toString('hex');
+  }
+}
+
 io.on('connection', (socket) => {
-  socket.emit('welcome', 'Hello from server!');
+  // TODO: Check if i can use socket.request.session.userID without uid(socket)
+
+  // --------------------------------------------------------------------------
+  // https://socket.io/how-to/use-with-express-session
+  //
+  // BEGIN
+
+  /** @typedef {function(import("socket.io").Socket): string} Select */
+
+  /** @type {Select} */
+  const sid = (s) => s.request.sessionID;
+  /** @type {Select} */
+  const uid = (s) => s.request.session.userID;
+
+  // Example of manual session reload for every event
+  socket.use((__, next) => {
+    console.log(
+      'Event received. ' +
+        `Reloading session ${sid(socket)} ` +
+        `for user ${uid(socket)}.`,
+    );
+
+    socket.request.session.reload((err) => {
+      if (err) {
+        console.error(
+          `Failed to reload the session ${sid(socket)} ` +
+            `for user ${uid(socket)}. ` +
+            'Disconnect the socket.',
+        );
+
+        socket.disconnect();
+        return;
+      }
+
+      console.log(
+        `Successfully reloaded session ${sid(socket)} ` +
+          `for user ${uid(socket)}.`,
+      );
+      next();
+    });
+  });
+
+  // Periodically reload session to handle expiration
+  const SESSION_RELOAD_INTERVAL = 30 * 1000; // 30 seconds
+  const timer = setInterval(() => {
+    // In development, when the server is restarted, the session reloads
+    // successfully, but the userID in the session is undefined.
+
+    console.log(`Reloading session ${sid(socket)} for user ${uid(socket)}.`);
+
+    socket.request.session.reload((err) => {
+      if (err) {
+        socket.conn.close(); // Client reconnects automatically
+
+        // You can also use socket.disconnect(), but in that case the client
+        // will not try to reconnect.
+        console.error(
+          'Failed to reload the session. ' +
+            `Session ${uid(socket)} has expired. ` +
+            `Connection closed for user ${sid(socket)}.`,
+        );
+
+        return;
+      }
+
+      console.log(
+        `Successfully reloaded session ${sid(socket)} ` +
+          `for user ${uid(socket)}.`,
+      );
+    });
+  }, SESSION_RELOAD_INTERVAL);
+
+  socket.on('disconnect', () => {
+    clearInterval(timer);
+  });
+
+  // END
+  // --------------------------------------------------------------------------
 
   socket.on('message', (data) => {
     console.log('Received message:', data);
@@ -49,13 +138,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('sendToBackend', (value) => {
-    const xUserId = socket.handshake.headers['x-user-id'];
-    socket.emit('sendToFrontend', { value, 'x-user-id': xUserId });
+    socket.emit('sendToFrontend', { value, userID: uid(socket) });
   });
 
   socket.on('room:list', (data, callback) => {
     try {
-      const userRooms = rooms.find({ userId: socket.userId });
+      const userRooms = rooms.find({ userId: uid(socket) });
 
       callback({ success: true, rooms: userRooms });
     } catch (error) {
@@ -71,12 +159,12 @@ io.on('connection', (socket) => {
     const { roomName } = data;
 
     try {
-      if (rooms.findOne({ userId: socket.userId, roomName })) {
+      if (rooms.findOne({ userId: uid(socket), roomName })) {
         callback({ success: false });
         return;
       }
 
-      const room = new Room(socket.userId, roomName);
+      const room = new Room(uid(socket), roomName);
 
       const savedRoom = rooms.insert(room);
 
@@ -110,46 +198,50 @@ app.use(bodyParser.json());
 
 const router = express.Router();
 
-router.post('/id', (req, res) => {
-  const header = 'X-User-ID';
-  const existingId = req.headers[header.toLowerCase()];
+/** @type {import("express").RequestHandler} */
+const ensureAnonymousUser = (req, res, next) => {
+  const userID = req.session.userID;
 
-  if (existingId) {
+  if (!userID) {
     try {
-      const user = users.findOne({ id: existingId });
+      console.log(
+        `Attempting to create anonymous user for session ${req.sessionID}.`,
+      );
 
-      if (!user) {
-        return res.status(401).json({
-          error: 'Invalid user identifier',
-          message: `The provided ${header} does not match any registered user.`,
-        });
-      }
+      const user = new User();
+      users.insert(user);
+      req.session.userID = user.id;
+      console.log(
+        `Created anonymous user ${user.id} for the session ${req.sessionID}.`,
+      );
 
-      return res.status(400).json({
-        error: 'User already identified',
-        message:
-          `Request contains existing ${header} header. ` +
-          'Use existing ID instead of generating a new one.',
+      // I hope this doesn't cause race condition...
+      req.session.save((err) => {
+        if (err) {
+          const message = error.message;
+          console.error(
+            `Failed to save the session ${req.sessionID}. ${message}`,
+          );
+          return next({ message });
+        }
+
+        console.log(`Successfully saved session ${req.sessionID}.`);
+        return next();
       });
+
+      return; // Needed because of req.session.save
     } catch (error) {
-      return res.status(500).json({
-        error: 'Database lookup failed',
-        message: 'Unable to verify user identifier.',
-      });
+      const message = error.message;
+      console.error(`Failed to create user for current session. ${message}`);
+      return next({ message });
     }
   }
 
-  try {
-    const id = crypto.randomBytes(32).toString('hex');
-    users.insert({ id });
-    return res.status(200).json({ id });
-  } catch (error) {
-    return res.status(500).json({
-      error: 'Failed to generate identifier.',
-      message: 'Unable to create id.',
-    });
-  }
-});
+  console.log(`Anonymous user ${userID} exists in session ${req.sessionID}.`);
+  return next();
+};
+
+router.use(ensureAnonymousUser);
 
 router.post('/', (req, res) => {
   const isValid = validate(req.body);

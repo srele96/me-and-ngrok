@@ -93,6 +93,19 @@ class JoiningState extends RoomState {
     this.roomClient.socket.once('room:join:error', this.errorHandler);
   }
 
+  join(roomId) {
+    throw new Error(
+      `Attempted to join the room ${roomId}. ` +
+        `Can't join while joining the room.`,
+    );
+  }
+
+  leave() {
+    throw new Error(
+      "Attempted to leave the room. Can't leave while joining the room.",
+    );
+  }
+
   getStatusMessage() {
     return `Attempting to join the room.`;
   }

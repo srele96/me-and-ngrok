@@ -4,6 +4,17 @@ import { io } from 'socket.io-client';
 import { useRoomClient } from './RoomClient';
 import { useForm } from 'react-hook-form';
 
+/**
+ * @typedef {Object} CreateRoom
+ * @property {() => string} status
+ * @property {(string) => void} fn
+ */
+
+/**
+ *
+ * @param {import("socket.io-client").Socket} socket
+ * @returns {CreateRoom}
+ */
 function useCreateRoom(socket) {
   const [status, setStatus] = useState('room:create:idle');
 
@@ -76,9 +87,9 @@ function useRoomList(socket) {
 function Game({ socket }) {
   const [notifications, setNotifications] = useState([]);
   const [sentString, setSentString] = useState(null);
-  const [receivedString, setReceivedString] = useState({
+  const [received, setReceived] = useState({
     value: '',
-    'x-user-id': '',
+    userID: '',
   });
   const {
     register,
@@ -95,25 +106,23 @@ function Game({ socket }) {
       setNotifications((previous) => [...previous, value]);
     }
 
-    function onSendToBackend(value) {
-      setReceivedString(value);
+    function onSendToFrontend(value) {
+      setReceived(value);
     }
 
     socket.on('notification', onNotification);
-    socket.on('sendToFrontend', onSendToBackend);
+    socket.on('sendToFrontend', onSendToFrontend);
 
     return () => {
       socket.off('notification', onNotification);
-      socket.off('sendToFrontend', onSendToBacked);
+      socket.off('sendToFrontend', onSendToFrontend);
     };
   }, [socket]);
 
   return (
     <div>
       <h1>Game</h1>
-      {receivedString['x-user-id'] && (
-        <div>x-user-id={receivedString['x-user-id']}</div>
-      )}
+      {received.userID && <div>userID={received.userID}</div>}
       <button
         onClick={() => {
           function createRandomString() {
@@ -129,7 +138,7 @@ function Game({ socket }) {
         <div>
           {sentString === null
             ? 'Click to send to backend'
-            : `Sent to backend '${sentString}', received from backend '${receivedString.value}'`}
+            : `Sent to backend '${sentString}', received from backend '${received.value}'`}
         </div>
       </button>
       <p>Notifications</p>
@@ -158,80 +167,34 @@ function Game({ socket }) {
 
       <div>
         <h2>Your Rooms</h2>
-        <p>Status: {roomList.status()}</p>
+        <p>Current room status: {roomClient.getStatusMessage()}</p>
+        <p>Room list status: {roomList.status()}</p>
 
         {roomList.value().length > 0 ? (
           <ul>
             {roomList.value().map((room) => (
-              <li key={room.id}>{room.roomName}</li>
+              <li key={room.id}>
+                {room.roomName}{' '}
+                <button onClick={() => roomClient.join(room.id)}>Join</button>
+              </li>
             ))}
           </ul>
         ) : (
           <p>No rooms available</p>
         )}
       </div>
-
-      <div>
-        <p>{roomClient.getStatusMessage()}</p>
-        <button onClick={() => roomClient.join('roomId')}>Join</button>
-        <h1>Room client</h1>
-      </div>
     </div>
   );
 }
 
-async function createAsyncSocket() {
-  const X_USER_ID = 'X-User-Id';
-
-  let userId = localStorage.getItem(X_USER_ID);
-
-  if (!userId) {
-    const response = await fetch('/api/id/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}.`);
-    }
-
-    const { id } = await response.json();
-
-    localStorage.setItem(X_USER_ID, id);
-
-    userId = id;
-  }
-
-  return io('', {
-    // THE PATH MUST BE EXACTLY /api/socket-io/
-    // THIS DOES NOT WORK /api/socket-io
-    path: '/api/socket-io/',
-    extraHeaders: {
-      [X_USER_ID]: userId,
-    },
-  });
-}
-
-function Initializing() {
-  return <h1>Initializing application...</h1>;
-}
-
-function Error(props) {
-  return <h1>An error occurred. {props.error.message}</h1>;
-}
-
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<Initializing />);
 
-// The game relies heavily on the socket.
-// Render the game once the socket is ready.
-// Provide an absolute singleton instance to the game.
-createAsyncSocket(false)
-  .then((socket) => {
-    root.render(<Game socket={socket} />);
-  })
-  .catch((error) => {
-    root.render(<Error error={error} />);
-  });
+root.render(
+  <Game
+    socket={io('', {
+      // THE PATH MUST BE EXACTLY /api/socket-io/
+      // THIS DOES NOT WORK /api/socket-io
+      path: '/api/socket-io/',
+    })}
+  />,
+);
