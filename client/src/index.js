@@ -43,7 +43,7 @@ function useRoomList(socket) {
   // socket.emit('room:list:initialize')
   // Handle all incoming data through one event.
   // socket.on('room:list:data', addData)
-  const [rooms, setRooms] = useState([]);
+  const [rooms, setRooms] = useState({});
   const [status, setStatus] = useState('room:list:idle');
 
   useEffect(() => {
@@ -52,12 +52,17 @@ function useRoomList(socket) {
     socket.emit('room:list', null, (response) => {
       if (response.success) {
         setRooms((prevRooms) => {
-          if (prevRooms.length === 0) {
-            return response.rooms;
-          } else {
-            // I wonder if we ever can have duplicate rooms here...
-            return [...response.rooms, ...prevRooms];
-          }
+          // Fix this shit, duplicate rooms, strict mode error
+          console.log(prevRooms, response.rooms);
+          // if (prevRooms.length === 0) {
+          //   return response.rooms;
+          // } else {
+          //   // I wonder if we ever can have duplicate rooms here...
+          //   // return [...response.rooms, ...prevRooms];
+          //   console.log(prevRooms, response.rooms);
+          //   return response.rooms;
+          // }
+          return prevRooms;
         });
         setStatus('room:list:success');
       } else {
@@ -67,11 +72,12 @@ function useRoomList(socket) {
 
     socket.on('room:create:success', (room) => {
       setRooms((prevRooms) => {
-        if (prevRooms.length === 0) {
-          return [room];
-        } else {
-          return [room, ...prevRooms];
-        }
+        // if (prevRooms.length === 0) {
+        //   return [room];
+        // } else {
+        //   return [room, ...prevRooms];
+        // }
+        return prevRooms;
       });
       setStatus('room:list:success');
     });
@@ -81,7 +87,7 @@ function useRoomList(socket) {
     };
   }, []);
 
-  return { value: () => rooms, status: () => status };
+  return { value: () => Object.values(rooms), status: () => status };
 }
 
 function Game({ socket }) {
@@ -167,13 +173,16 @@ function Game({ socket }) {
 
       <div>
         <h2>Your Rooms</h2>
+        <p>Error Status: {roomClient.getErrorMessage()}</p>
+
+        <button onClick={() => roomClient.leave()}>Leave room</button>
         <p>Current room status: {roomClient.getStatusMessage()}</p>
         <p>Room list status: {roomList.status()}</p>
 
         {roomList.value().length > 0 ? (
           <ul>
             {roomList.value().map((room) => (
-              <li key={room.id}>
+              <li id={room.id} key={room.id}>
                 {room.roomName}{' '}
                 <button onClick={() => roomClient.join(room.id)}>Join</button>
               </li>
@@ -190,11 +199,13 @@ function Game({ socket }) {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 root.render(
-  <Game
-    socket={io('', {
-      // THE PATH MUST BE EXACTLY /api/socket-io/
-      // THIS DOES NOT WORK /api/socket-io
-      path: '/api/socket-io/',
-    })}
-  />,
+  <React.StrictMode>
+    <Game
+      socket={io('', {
+        // THE PATH MUST BE EXACTLY /api/socket-io/
+        // THIS DOES NOT WORK /api/socket-io
+        path: '/api/socket-io/',
+      })}
+    />
+  </React.StrictMode>,
 );
